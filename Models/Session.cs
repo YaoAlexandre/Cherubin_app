@@ -7,13 +7,11 @@ using System.Threading.Tasks;
 
 namespace FirstApp.Models
 {
-    public class Attendance
+    public class Session
     {
         [PrimaryKey, AutoIncrement]
         public int Id { get; set; }
-        public int MemberId { get; set; }
-        public int SessionId { get; set; }
-        public bool IsPresent { get; set; }
         public DateTime Date { get; set; }
     }
+
 }

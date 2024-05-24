@@ -14,5 +14,6 @@ namespace FirstApp.Models
         public int MemberId { get; set; }
         public decimal Amount { get; set; }
         public DateTime Date { get; set; }
+        public int SessionId { get; set; } // Nouvelle propriété
     }
 }

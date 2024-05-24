@@ -1,5 +1,122 @@
 ﻿@page "/"
+@using System.IO
+@using FirstApp.Models
+@using SQLite
+@using System.Linq
+@using System.Collections.Generic
+@inject NavigationManager Navigation
 
-<h1>Hello, world!</h1>
+<h3>Dashboard</h3>
 
-Welcome to your new app.
+<div class="container">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">User Information</h5>
+                    <p class="card-text">User Name: @userName</p>
+                    <p class="card-text">User Role: @userRole</p>
+                    <!-- Ajoutez d'autres informations sur l'utilisateur au besoin -->
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Total Members</h5>
+                    <p class="card-text">@totalMembers</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Total Contributed Last Session</h5>
+                    <p class="card-text">@totalContributedLastSession</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Absentees Last Meeting</h5>
+                    <p class="card-text">@absenteesLastMeeting</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <canvas id="attendanceChart" width="400" height="200"></canvas>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string userName = "John Doe"; // Remplacez par le nom de l'utilisateur réel
+    private string userRole = "Administrator"; // Remplacez par le rôle de l'utilisateur réel
+    private int totalMembers;
+    private decimal totalContributedLastSession;
+    private int absenteesLastMeeting;
+    private List<Session> sessions = new List<Session>();
+    private List<Attendance> attendances = new List<Attendance>();
+
+    private string dbPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "members.db3");
+
+    protected override void OnInitialized()
+    {
+        InitializeDatabase();
+        LoadData();
+        CalculateStats();
+        RenderAttendanceChart();
+    }
+
+    private void InitializeDatabase()
+    {
+        using (var connection = new SQLiteConnection(dbPath))
+        {
+            connection.CreateTable<Session>();
+            connection.CreateTable<Attendance>();
+        }
+    }
+
+    private void LoadData()
+    {
+        using (var connection = new SQLiteConnection(dbPath))
+        {
+            sessions = connection.Table<Session>().ToList();
+            attendances = connection.Table<Attendance>().ToList();
+        }
+    }
+
+    private void CalculateStats()
+    {
+        using (var connection = new SQLiteConnection(dbPath))
+        {
+            totalMembers = connection.Table<Member>().Count();
+
+            if (sessions.Any())
+            {
+                var lastSessionId = sessions.OrderByDescending(s => s.Date).First().Id;
+                absenteesLastMeeting = connection.Table<Attendance>().Count(a => a.SessionId == lastSessionId && !a.IsPresent);
+                totalContributedLastSession = connection.Table<Contribution>().Where(c => c.SessionId == lastSessionId).Sum(c => c.Amount);
+            }
+        }
+    }
+
+
+    private async Task RenderAttendanceChart()
+    {
+        var attendanceData = new List<int>();
+        var labels = new List<string>();
+
+        foreach (var session in sessions.OrderBy(s => s.Date))
+        {
+            labels.Add(session.Date.ToShortDateString());
+            attendanceData.Add(attendances.Count(a => a.SessionId == session.Id && !a.IsPresent));
+        }
+
+        // await JSRuntime.InvokeAsync<object>("renderAttendanceChart", new object[] { labels, attendanceData });
+    }
+}
